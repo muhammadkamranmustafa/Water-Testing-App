@@ -1,3 +1,4 @@
+// Updated color references to better match real test strip colors
 export const COLOR_REFERENCES = {
   freeChlorine: [
     { range: [0, 0.5], color: { r: 255, g: 255, b: 240 }, status: "low" },
@@ -212,7 +213,6 @@ export function matchColorToValue(extractedColor: RGB, parameter: keyof typeof C
   // Double-check status based on final calculated value
   const finalStatus = determineStatusFromValue(value, parameter)
   if (finalStatus !== status) {
-    console.log(`[v0] Status correction for ${parameter}: ${status} -> ${finalStatus} (value: ${value})`)
     status = finalStatus
   }
 
@@ -258,22 +258,15 @@ export async function analyzeTestStrip(
   imageUrl: string,
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
-  console.log(`[v0] Starting analysis for ${stripType}`)
-
   try {
     // First try AI analysis via server-side API
-    console.log("[v0] Attempting AI analysis via server API")
     const aiResults = await analyzeWithHuggingFaceAPI(imageUrl, stripType)
     if (aiResults) {
-      console.log("[v0] AI analysis successful")
       return aiResults
     }
-  } catch (error) {
-    console.log("[v0] AI analysis failed, falling back to enhanced color analysis:", error)
-  }
+  } catch (error) {}
 
   // Fallback to enhanced color analysis
-  console.log(`[v0] Using enhanced color analysis for ${stripType}`)
   return analyzeTestStripEnhanced(imageUrl, stripType)
 }
 
@@ -282,8 +275,6 @@ async function analyzeWithHuggingFaceAPI(
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }> | null> {
   try {
-    console.log("[v0] Starting Hugging Face API analysis")
-
     // Convert image URL to blob for API
     const response = await fetch(imageUrl)
     if (!response.ok) {
@@ -291,7 +282,6 @@ async function analyzeWithHuggingFaceAPI(
     }
 
     const blob = await response.blob()
-    console.log("[v0] Image blob created, size:", blob.size)
 
     const formData = new FormData()
     formData.append("image", blob)
@@ -308,7 +298,6 @@ async function analyzeWithHuggingFaceAPI(
     }
 
     const result = await apiResponse.json()
-    console.log("[v0] Hugging Face API response:", result)
 
     if (result.error) {
       throw new Error(result.error)
@@ -317,7 +306,6 @@ async function analyzeWithHuggingFaceAPI(
     // Convert AI results to our format with better color generation
     return convertAIResultsToAnalysisResults(result, stripType)
   } catch (error) {
-    console.log("[v0] Hugging Face API analysis failed:", error)
     return null
   }
 }
@@ -441,13 +429,10 @@ export async function detectAndAnalyzeTestStrip(
   imageUrl: string,
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
-  console.log(`[v0] Starting detectAndAnalyzeTestStrip for ${stripType}`)
-
   try {
     // Use the main analysis function which includes AI fallback
     return await analyzeTestStrip(imageUrl, stripType)
   } catch (error) {
-    console.log("[v0] detectAndAnalyzeTestStrip failed:", error)
     throw error
   }
 }
@@ -458,7 +443,6 @@ async function analyzeTestStripEnhanced(
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      console.log("[v0] Enhanced analysis timed out")
       reject(new Error("Analysis timeout - please try with a smaller or clearer image"))
     }, 3000)
 
@@ -467,8 +451,6 @@ async function analyzeTestStripEnhanced(
 
       img.onload = () => {
         try {
-          console.log("[v0] Image loaded, starting enhanced analysis")
-
           const canvas = document.createElement("canvas")
           const ctx = canvas.getContext("2d")
           if (!ctx) {
@@ -529,11 +511,9 @@ async function analyzeTestStripEnhanced(
             }
           })
 
-          console.log("[v0] Enhanced analysis complete")
           clearTimeout(timeoutId)
           resolve(results)
         } catch (error) {
-          console.log("[v0] Error in enhanced analysis:", error)
           clearTimeout(timeoutId)
           reject(error)
         }
