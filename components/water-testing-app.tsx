@@ -31,7 +31,6 @@ export function WaterTestingApp() {
 
     try {
       const analysisResults = await detectAndAnalyzeTestStrip(imageUrl, stripType)
-      console.log("Analysis results:", analysisResults)
       setResults(analysisResults)
     } catch (error) {
       console.error("Analysis failed:", error)
@@ -121,9 +120,6 @@ export function WaterTestingApp() {
   ) => {
     if (!results) return
 
-    console.log("[v0] Manual override called:", { parameter, newValue, newStatus, newColor })
-    console.log("[v0] Current color for", parameter, ":", results[parameter]?.detectedColor)
-
     setResults((prev) => {
       const updatedResults = {
         ...prev!,
@@ -135,9 +131,6 @@ export function WaterTestingApp() {
           detectedColor: newColor || prev![parameter].detectedColor,
         },
       }
-
-      console.log("[v0] Updated results:", updatedResults)
-      console.log("[v0] New color for", parameter, ":", updatedResults[parameter].detectedColor)
 
       return updatedResults
     })
