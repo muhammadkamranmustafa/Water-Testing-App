@@ -95,7 +95,7 @@ function calculateHealthScore(results: Record<string, AnalysisResult>): number {
     }
   })
 
-  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+  return Math.round(scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length)
 }
 
 function getHealthScoreColor(score: number): string {
