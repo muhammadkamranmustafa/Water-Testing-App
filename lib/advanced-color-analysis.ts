@@ -1,3 +1,4 @@
+// Advanced color analysis using HSV color space and improved algorithms
 export interface HSV {
   h: number // Hue (0-360)
   s: number // Saturation (0-100)
@@ -135,8 +136,6 @@ export function extractDominantColorAdvanced(
   const centerWidth = Math.floor(width * 0.5)
   const centerHeight = Math.floor(height * 0.5)
 
-  console.log(`[v0] Sampling region: x=${centerX}, y=${centerY}, w=${centerWidth}, h=${centerHeight}`)
-
   for (let py = centerY; py < centerY + centerHeight; py += step) {
     for (let px = centerX; px < centerX + centerWidth; px += step) {
       if (px >= 0 && px < imageData.width && py >= 0 && py < imageData.height) {
@@ -183,8 +182,6 @@ export function extractDominantColorAdvanced(
     }
   }
 
-  console.log(`[v0] Found ${colorMap.size} color groups`)
-
   if (colorMap.size === 0) {
     return {
       color: { r: 255, g: 255, b: 255 },
@@ -209,9 +206,6 @@ export function extractDominantColorAdvanced(
     })
 
   const dominantCluster = clusters[0]
-  console.log(
-    `[v0] Dominant color: RGB(${dominantCluster.color.r}, ${dominantCluster.color.g}, ${dominantCluster.color.b}) HSV(${dominantCluster.hsv.h}, ${dominantCluster.hsv.s}, ${dominantCluster.hsv.v})`,
-  )
 
   return {
     color: dominantCluster.color,
@@ -285,10 +279,6 @@ export function matchColorToValueAdvanced(
   const references = ENHANCED_COLOR_REFERENCES[parameter]
   const extractedHsv = rgbToHsv(extractedColor)
 
-  console.log(
-    `[v0] Matching ${parameter}: RGB(${extractedColor.r}, ${extractedColor.g}, ${extractedColor.b}) -> HSV(${extractedHsv.h}, ${extractedHsv.s}, ${extractedHsv.v})`,
-  )
-
   // Find closest matches in HSV space
   const distances = references
     .map((ref, index) => ({
@@ -300,10 +290,6 @@ export function matchColorToValueAdvanced(
 
   const closest = distances[0]
   const secondClosest = distances[1]
-
-  console.log(
-    `[v0] Closest match for ${parameter}: distance=${closest.distance.toFixed(2)}, range=[${closest.ref.range[0]}, ${closest.ref.range[1]}], status=${closest.ref.status}`,
-  )
 
   // Calculate confidence based on HSV distance
   const maxDistance = 200 // Reasonable max distance in HSV space
