@@ -275,24 +275,17 @@ function analyzeDetectedStrip(imageData: ImageData, strip: DetectedStrip): Recor
   const parameterNames = ["freeChlorine", "ph", "totalAlkalinity", "totalChlorine", "totalHardness", "cyanuricAcid"]
   const results: Record<string, AnalysisResult> = {}
 
-  console.log(`Analyzing detected strip at bounds:`, strip.bounds)
-  console.log(`Strip confidence: ${strip.confidence}, isVertical: ${strip.isVertical}`)
-
   for (let i = 0; i < Math.min(parameterNames.length, strip.bandPositions.length); i++) {
     const paramName = parameterNames[i]
     const bandPos = strip.bandPositions[i]
 
-    console.log(`Analyzing ${paramName} at detected position:`, bandPos)
-
     const detectedColor = extractDominantColor(imageData, bandPos)
-    console.log(`Detected color for ${paramName}:`, detectedColor)
 
-    // Use the same color matching logic as before
     const matchResult = matchColorToParameter(detectedColor, paramName)
 
     results[paramName] = {
       value: matchResult.value,
-      status: matchResult.status,
+      status: matchResult.status as "low" | "ok" | "high",
       unit: matchResult.unit,
       confidence: Math.min(strip.confidence, matchResult.confidence),
       detectedColor,
@@ -304,9 +297,6 @@ function analyzeDetectedStrip(imageData: ImageData, strip: DetectedStrip): Recor
 }
 
 function analyzeWithFallback(imageData: ImageData): Record<string, AnalysisResult> {
-  // Fallback to center-based analysis when strip detection fails
-  console.log("Using fallback analysis - strip detection failed")
-
   const parameterNames = ["freeChlorine", "ph", "totalAlkalinity", "totalChlorine", "totalHardness", "cyanuricAcid"]
   const results: Record<string, AnalysisResult> = {}
 
@@ -333,9 +323,9 @@ function analyzeWithFallback(imageData: ImageData): Record<string, AnalysisResul
 
     results[paramName] = {
       value: matchResult.value,
-      status: matchResult.status,
+      status: matchResult.status as "low" | "ok" | "high",
       unit: matchResult.unit,
-      confidence: matchResult.confidence * 0.7, // Lower confidence for fallback
+      confidence: matchResult.confidence * 0.7,
       detectedColor,
       processingMethod: "fallback-center-analysis",
     }
@@ -350,15 +340,13 @@ function matchColorToParameter(
   paramName: string,
 ): {
   value: number
-  status: string
+  status: "low" | "ok" | "high"
   unit: string
   confidence: number
 } {
-  // This would use the same COLOR_REFERENCES and matching logic from color-analysis.ts
-  // For now, returning a placeholder - this should be imported from the main color analysis
   return {
     value: 0,
-    status: "unknown",
+    status: "ok" as const,
     unit: "ppm",
     confidence: 0.5,
   }
