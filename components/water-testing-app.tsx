@@ -37,7 +37,7 @@ export function WaterTestingApp() {
       console.error("Analysis failed:", error)
       setAnalysisError(`Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`)
 
-      const fallbackResults =
+      const fallbackResults: Record<string, AnalysisResult> =
         stripType === "3-in-1"
           ? {
               freeChlorine: {
