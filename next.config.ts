@@ -4,7 +4,15 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  basePath: "/test-strip-results-analyser",
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/test-strip-results-analyser',
+        permanent: false,
+      },
+    ]
+  },
 };
 
 export default nextConfig;
