@@ -9,7 +9,8 @@ import { TestResults } from "@/components/test-results"
 import { ColorAnalysisDebug } from "@/components/color-analysis-debug"
 import { ResultsDashboard } from "@/components/results-dashboard"
 import { ManualColorOverride } from "@/components/manual-color-override"
-import { Droplets, Camera, Upload, ArrowLeft, Sparkles, CheckCircle, Settings } from "lucide-react"
+import { VolumeCalculator } from "@/components/volume-calculator"
+import { Droplets, Camera, Upload, ArrowLeft, Sparkles, CheckCircle, Settings, Calculator } from "lucide-react"
 import { detectAndAnalyzeTestStrip } from "@/lib/color-analysis"
 import type { AnalysisResult } from "@/lib/color-analysis"
 
@@ -21,8 +22,10 @@ export function WaterTestingApp() {
   const [showDetailedResults, setShowDetailedResults] = useState(false)
   const [stripType, setStripType] = useState<"3-in-1" | "6-in-1">("6-in-1")
   const [showManualOverride, setShowManualOverride] = useState(false)
+  const [showVolumeCalculator, setShowVolumeCalculator] = useState(false)
 
   const handleImageUpload = async (imageUrl: string) => {
+    console.log("[v0] handleImageUpload called with:", imageUrl.substring(0, 50) + "...")
     setUploadedImage(imageUrl)
     setIsAnalyzing(true)
     setAnalysisError(null)
@@ -30,10 +33,81 @@ export function WaterTestingApp() {
     setShowManualOverride(false)
 
     try {
-      const analysisResults = await detectAndAnalyzeTestStrip(imageUrl, stripType)
+      let processedImageUrl = imageUrl
+
+      if (imageUrl.startsWith("/") && !imageUrl.startsWith("data:")) {
+        // This is a sample image path, we need to fetch it and convert to data URL
+        console.log("[v0] Processing sample image path:", imageUrl)
+        try {
+          const response = await fetch(imageUrl)
+          if (!response.ok) {
+            throw new Error(`Failed to load sample image: ${response.status}`)
+          }
+          const blob = await response.blob()
+
+          // Ensure we have a valid blob
+          if (blob.size === 0) {
+            throw new Error("Sample image is empty")
+          }
+
+          processedImageUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+              const result = e.target?.result as string
+              if (result && result.includes("base64,") && result.split("base64,")[1]?.length > 0) {
+                console.log("[v0] Successfully converted sample image to data URL")
+                resolve(result)
+              } else {
+                console.error("[v0] Failed to convert sample image - invalid data URL:", result?.substring(0, 50))
+                reject(new Error("Failed to convert image to valid data URL"))
+              }
+            }
+            reader.onerror = () => reject(new Error("FileReader error"))
+            reader.readAsDataURL(blob)
+          })
+        } catch (fetchError) {
+          console.error("[v0] Failed to load sample image:", fetchError)
+          setAnalysisError("Failed to load sample image. Please try uploading your own image.")
+          setIsAnalyzing(false)
+          return
+        }
+      } else if (imageUrl.startsWith("data:")) {
+        const base64Data = imageUrl.split("base64,")[1]
+        if (!imageUrl.includes("base64,") || !base64Data || base64Data.length === 0) {
+          console.error("[v0] Invalid data URL provided - missing or empty base64 data")
+          setAnalysisError("Invalid image data. Please try uploading the image again.")
+          setIsAnalyzing(false)
+          return
+        }
+        console.log("[v0] Using provided data URL with", base64Data.length, "characters of base64 data")
+      }
+
+      console.log("[v0] Calling detectAndAnalyzeTestStrip with processed image")
+      const analysisResults = await detectAndAnalyzeTestStrip(processedImageUrl, stripType)
+
+      if (!analysisResults || Object.keys(analysisResults).length === 0) {
+        throw new Error("No test strip detected in image")
+      }
+
+      const detectedParameters = Object.keys(analysisResults).length
+      const expectedParameters = stripType === "3-in-1" ? 3 : 6
+
+      if (detectedParameters > expectedParameters) {
+        setAnalysisError(
+          `We have detected a ${detectedParameters > 3 ? "6-in-1" : "3-in-1"} test strip, please select the ${detectedParameters > 3 ? "6-in-1" : "3-in-1"} test strip analyser`,
+        )
+      }
+
       setResults(analysisResults)
     } catch (error) {
       console.error("Analysis failed:", error)
+
+      if (error instanceof Error && error.message.includes("No test strip detected")) {
+        setAnalysisError("Low quality image, please improve lighting")
+        setResults(null)
+        return
+      }
+
       setAnalysisError(`Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       const fallbackResults: Record<string, AnalysisResult> =
@@ -166,7 +240,8 @@ export function WaterTestingApp() {
             </div>
           </div>
           <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            Get instant, professional-grade pool water analysis with our advanced AI color detection technology
+            Get instant hot tub and swimming pool water analysis using Deep Blue Pro test strips and our advanced AI
+            colour detection technology
           </p>
         </div>
 
@@ -237,8 +312,8 @@ export function WaterTestingApp() {
                 Upload Your Test Strip
               </CardTitle>
               <CardDescription className="text-base sm:text-lg text-gray-600 mt-3 max-w-2xl mx-auto">
-                Take a clear photo of your water test strip for instant AI analysis and personalized chemical
-                recommendations
+                Take a clear photo of your Deep Blue Pro water test strip for instant AI analysis and personalized
+                chemical recommendations
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 sm:px-8 pb-8">
@@ -270,6 +345,17 @@ export function WaterTestingApp() {
               </div>
 
               <ImageUpload onImageUpload={handleImageUpload} />
+
+              <div className="mt-6 text-center">
+                <Button
+                  onClick={() => setShowVolumeCalculator(true)}
+                  variant="outline"
+                  className="bg-white/80 border-gray-200 hover:bg-gray-50 font-medium"
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Calculate hot tub or swimming pool volume
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -330,9 +416,16 @@ export function WaterTestingApp() {
               <CardContent className="px-6 sm:px-8 pb-6 sm:pb-8">
                 <div className="relative max-w-md mx-auto">
                   <img
-                    src={uploadedImage || "./placeholder.svg"}
+                    src={uploadedImage || "/placeholder.svg?height=400&width=300&query=test strip placeholder"}
                     alt="Test strip"
                     className="w-full rounded-xl shadow-lg border border-gray-200"
+                    onError={(e) => {
+                      console.log("[v0] Image failed to load:", uploadedImage)
+                      const target = e.currentTarget
+                      if (target.src !== "/placeholder.svg?height=400&width=300") {
+                        target.src = "/placeholder.svg?height=400&width=300"
+                      }
+                    }}
                   />
                   {isAnalyzing && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl backdrop-blur-sm">
@@ -383,7 +476,38 @@ export function WaterTestingApp() {
             )}
           </div>
         )}
+
+        <Card className="mt-8 sm:mt-12 border-0 shadow-lg bg-gray-50/80 backdrop-blur-sm">
+          <CardContent className="px-6 sm:px-8 py-6">
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm">Disclaimer</h3>
+            <div className="text-xs text-gray-600 space-y-2 leading-relaxed">
+              <p>
+                The results and chemical recommendations provided by this Deep Blue Pro Test Strip Results Analyser
+                should only be used with genuine Deep Blue Pro test strips and are intended for general guidance, they
+                should not be considered as definitive water treatment instructions. Always verify chemical requirements
+                with a qualified or verified supplier before making adjustments to your pool or spa.
+              </p>
+              <p>
+                For improved accuracy, we recommend confirming results with a digital water testing meter or by
+                averaging the readings of multiple test strips. When adding any chemicals, always follow the
+                manufacturer's guidelines printed on the product packaging. Apply chemicals in small, incremental doses
+                and re-test the water before making further adjustments.
+              </p>
+              <p>
+                Please note that chemical performance and effectiveness may vary depending on several factors, including
+                but not limited to: water temperature, circulation/flow rate, pH balance, total alkalinity, and calcium
+                hardness.
+              </p>
+              <p className="font-medium">
+                Deep Blue Pool Supplies accepts no liability for damages, losses, or issues arising from reliance on
+                this tool. Use at your own discretion.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {showVolumeCalculator && <VolumeCalculator onClose={() => setShowVolumeCalculator(false)} />}
     </div>
   )
 }
