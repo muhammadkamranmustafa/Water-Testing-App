@@ -160,7 +160,7 @@ export function WaterTestingApp() {
             </div>
             <div className="text-left">
               <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">
-                AquaTest Pro
+                Deep Blue Pro Strip Ease Pro
               </h1>
               <p className="text-sm sm:text-base text-blue-600 font-medium">AI-Powered Water Analysis</p>
             </div>
@@ -169,6 +169,63 @@ export function WaterTestingApp() {
             Get instant, professional-grade pool water analysis with our advanced AI color detection technology
           </p>
         </div>
+
+        <Card className="mb-8 sm:mb-12 border-0 shadow-xl bg-gradient-to-br from-white to-blue-50/50 backdrop-blur-sm">
+          <CardHeader className="px-6 sm:px-8">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-900">How It Works</CardTitle>
+            <CardDescription className="text-center text-base sm:text-lg text-gray-600 mt-2">
+              Get professional water analysis in three simple steps
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 sm:px-8 pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              <div className="text-center group">
+                <div className="relative mx-auto mb-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                    <span className="text-blue-900 font-bold text-xl sm:text-2xl drop-shadow-sm">1</span>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <Droplets className="h-3 w-3 text-yellow-800" />
+                  </div>
+                </div>
+                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Dip Test Strip</h3>
+                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                  Dip your test strip in pool water for 2 seconds then remove
+                </p>
+              </div>
+
+              <div className="text-center group">
+                <div className="relative mx-auto mb-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                    <span className="text-purple-900 font-bold text-xl sm:text-2xl drop-shadow-sm">2</span>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-3 w-3 text-green-800" />
+                  </div>
+                </div>
+                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Wait 10 Seconds</h3>
+                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                  Allow the chemical reactions to develop and colours to stabilize
+                </p>
+              </div>
+
+              <div className="text-center group">
+                <div className="relative mx-auto mb-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                    <span className="text-green-900 font-bold text-xl sm:text-2xl drop-shadow-sm">3</span>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
+                    <Camera className="h-3 w-3 text-blue-800" />
+                  </div>
+                </div>
+                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Upload & Analyze</h3>
+                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                  Take a clear photo and get instant analysis with chemical recommendations
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {!uploadedImage ? (
           <Card className="mb-8 sm:mb-12 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
@@ -273,7 +330,7 @@ export function WaterTestingApp() {
               <CardContent className="px-6 sm:px-8 pb-6 sm:pb-8">
                 <div className="relative max-w-md mx-auto">
                   <img
-                    src={uploadedImage || "/placeholder.svg"}
+                    src={uploadedImage || "./placeholder.svg"}
                     alt="Test strip"
                     className="w-full rounded-xl shadow-lg border border-gray-200"
                   />
@@ -326,63 +383,6 @@ export function WaterTestingApp() {
             )}
           </div>
         )}
-
-        <Card className="mt-8 sm:mt-12 border-0 shadow-xl bg-gradient-to-br from-white to-blue-50/50 backdrop-blur-sm">
-          <CardHeader className="px-6 sm:px-8">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-900">How It Works</CardTitle>
-            <CardDescription className="text-center text-base sm:text-lg text-gray-600 mt-2">
-              Get professional water analysis in three simple steps
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 sm:px-8 pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-              <div className="text-center group">
-                <div className="relative mx-auto mb-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
-                    <span className="text-white font-bold text-xl sm:text-2xl">1</span>
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                    <Droplets className="h-3 w-3 text-yellow-800" />
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Dip Test Strip</h3>
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                  Dip your test strip in pool water for exactly 2 seconds, then remove
-                </p>
-              </div>
-
-              <div className="text-center group">
-                <div className="relative mx-auto mb-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
-                    <span className="text-white font-bold text-xl sm:text-2xl">2</span>
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-3 w-3 text-green-800" />
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Wait 15 Seconds</h3>
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                  Allow the chemical reactions to develop and colors to stabilize completely
-                </p>
-              </div>
-
-              <div className="text-center group">
-                <div className="relative mx-auto mb-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
-                    <span className="text-white font-bold text-xl sm:text-2xl">3</span>
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
-                    <Camera className="h-3 w-3 text-blue-800" />
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2 text-base sm:text-lg text-gray-900">Upload & Analyze</h3>
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                  Take a clear photo and get instant AI analysis with chemical recommendations
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
