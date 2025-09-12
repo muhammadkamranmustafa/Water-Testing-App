@@ -18,17 +18,17 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
 
   const sampleImages = [
     {
-      path: "/placeholder.svg?height=400&width=300",
+      path: "./test-strip-sample-1.jpg",
       alt: "Test strip with multiple colored bands",
       description: "Multi-parameter strip",
     },
     {
-      path: "/placeholder.svg?height=400&width=300",
+      path: "/test-strip-sample-2.jpg",
       alt: "Vertical test strip with distinct colors",
       description: "Vertical orientation",
     },
     {
-      path: "/placeholder.svg?height=400&width=300",
+      path: "/test-strip-sample-3.jpg",
       alt: "Test strip with orange and yellow bands",
       description: "Clear color bands",
     },
@@ -121,7 +121,7 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Button
           onClick={openCamera}
-          className="h-14 sm:h-12 text-base sm:text-base bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all duration-200"
+          className="h-14 sm:h-12 text-base sm:text-base bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 text-white font-medium"
           size="lg"
         >
           <div className="flex items-center space-x-2">
@@ -156,7 +156,7 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
               <div className="aspect-[3/4] sm:aspect-[4/3] relative">
                 {!imageError[index] ? (
                   <img
-                    src={sample.path || "/placeholder.svg"}
+                    src={sample.path || "./placeholder.svg"}
                     alt={sample.alt}
                     className="w-full h-full object-cover"
                     onError={() => handleImageError(index)}
@@ -170,10 +170,10 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
                     </div>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <div className="absolute bottom-0 left-0 right-0 p-3">
                     <p className="text-white text-sm font-medium">{sample.description}</p>
-                    <p className="text-white/80 text-xs mt-1">Tap to use</p>
+                    <p className="text-white text-xs mt-1">Tap to use</p>
                   </div>
                 </div>
               </div>
