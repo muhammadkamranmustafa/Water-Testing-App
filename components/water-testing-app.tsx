@@ -312,8 +312,8 @@ export function WaterTestingApp() {
                 Upload Your Test Strip
               </CardTitle>
               <CardDescription className="text-base sm:text-lg text-gray-600 mt-3 max-w-2xl mx-auto">
-                Take a clear photo of your Deep Blue Pro water test strip for instant AI analysis and personalized
-                chemical recommendations
+                For best results, ensure the test strip is well lit and clearly visible, on a white background and
+                without shadows
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 sm:px-8 pb-8">
