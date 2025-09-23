@@ -34,7 +34,7 @@ const parameterInfo = {
   totalHardness: {
     name: "Total Hardness",
     description: "Calcium and magnesium content",
-    ideal: "150 - 300 ppm",
+    ideal: "200 - 400 ppm",
   },
   cyanuricAcid: {
     name: "Cyanuric Acid",
@@ -72,9 +72,12 @@ function getStatusColor(status: string) {
 function ConfidenceIndicator({ confidence }: { confidence: number }) {
   const percentage = Math.round(confidence * 100)
   const color = confidence > 0.8 ? "text-green-600" : confidence > 0.6 ? "text-yellow-600" : "text-red-600"
+  const showTooltip = confidence <= 0.6
+  const tooltipText =
+    "To improve the confidence level please try another test strip or click the manual override button"
 
   return (
-    <div className={`flex items-center gap-1 text-xs ${color}`}>
+    <div className={`flex items-center gap-1 text-xs ${color}`} title={showTooltip ? tooltipText : undefined}>
       <TrendingUp className="h-3 w-3" />
       {percentage}% confidence
     </div>
