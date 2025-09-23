@@ -113,7 +113,7 @@ const TARGET_RANGES = {
   ph: { min: 7.2, max: 7.6, ideal: 7.4 },
   totalAlkalinity: { min: 80, max: 120, ideal: 100 },
   totalChlorine: { min: 1.0, max: 3.0, ideal: 2.0 },
-  totalHardness: { min: 150, max: 300, ideal: 200 }, // Changed ideal from 225 to 200
+  totalHardness: { min: 200, max: 400, ideal: 300 },
   cyanuricAcid: { min: 30, max: 50, ideal: 40 },
 }
 
@@ -153,7 +153,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "pH Plus (Sodium Carbonate)",
+      chemical: "pH Plus",
       amount,
       unit,
       reason: `Raise pH from ${ph.toFixed(1)} to ${phTarget.ideal}`,
@@ -165,7 +165,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "pH Minus (Sodium Bisulfate)",
+      chemical: "pH Minus",
       amount,
       unit,
       reason: `Lower pH from ${ph.toFixed(1)} to ${phTarget.ideal}`,
@@ -187,7 +187,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Granules (Calcium Hypochlorite)",
+      chemical: "Chlorine Granules",
       amount,
       unit,
       reason: `Raise free chlorine from ${freeChlorine.toFixed(1)} to ${chlorineTarget.ideal} ppm`,
@@ -203,7 +203,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Reducer (Sodium Thiosulfate)",
+      chemical: "Chlorine Reducer",
       amount,
       unit,
       reason: `Lower free chlorine from ${freeChlorine.toFixed(1)} to ${chlorineTarget.ideal} ppm`,
@@ -225,7 +225,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "TA Increaser (Sodium Bicarbonate)",
+      chemical: "TA Increaser",
       amount,
       unit,
       reason: `Raise total alkalinity from ${totalAlkalinity.toFixed(0)} to ${alkalinityTarget.ideal} ppm`,
@@ -241,7 +241,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "TA Reducer (Sodium Bisulfate)",
+      chemical: "TA Reducer",
       amount,
       unit,
       reason: `Lower total alkalinity from ${totalAlkalinity.toFixed(0)} to ${alkalinityTarget.ideal} ppm`,
@@ -251,7 +251,7 @@ export function calculateChemicalAdjustments(
   }
 
   // Calcium Hardness Adjustment
-  const totalHardness = testResults.totalHardness?.value || 200
+  const totalHardness = testResults.totalHardness?.value || 300
   const hardnessTarget = TARGET_RANGES.totalHardness
 
   if (totalHardness < hardnessTarget.min) {
@@ -263,7 +263,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Calcium Hardness Increaser (Calcium Chloride)",
+      chemical: "Calcium Hardness Increaser",
       amount,
       unit,
       reason: `Raise calcium hardness from ${totalHardness.toFixed(0)} to ${hardnessTarget.ideal} ppm`,
@@ -278,10 +278,10 @@ export function calculateChemicalAdjustments(
     recommendations.push({
       chemical: "Fresh Water Dilution",
       amount: Math.round(dilutionPercentage),
-      unit: "% of pool volume",
+      unit: "% of water volume",
       reason: `Lower calcium hardness from ${totalHardness.toFixed(0)} to ${hardnessTarget.ideal} ppm`,
       priority: "low",
-      instructions: `Drain ${Math.round(dilutionPercentage)}% of pool water and refill with fresh water to reduce calcium hardness.`,
+      instructions: `Drain ${Math.round(dilutionPercentage)}% of water and refill with fresh water to reduce calcium hardness levels.`,
     })
   }
 
@@ -298,7 +298,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Conditioner (Cyanuric Acid)",
+      chemical: "Chlorine Conditioner",
       amount,
       unit,
       reason: `Raise cyanuric acid from ${cyanuricAcid.toFixed(0)} to ${cyaTarget.ideal} ppm`,
@@ -312,10 +312,10 @@ export function calculateChemicalAdjustments(
     recommendations.push({
       chemical: "Fresh Water Dilution",
       amount: Math.round(dilutionPercentage),
-      unit: "% of pool volume",
+      unit: "% of water volume",
       reason: `Lower cyanuric acid from ${cyanuricAcid.toFixed(0)} to ${cyaTarget.ideal} ppm`,
       priority: "low",
-      instructions: `Drain ${Math.round(dilutionPercentage)}% of pool water and refill with fresh water to reduce cyanuric acid levels.`,
+      instructions: `Drain ${Math.round(dilutionPercentage)}% of water and refill with fresh water to reduce cyanuric acid levels.`,
     })
   }
 
@@ -331,13 +331,11 @@ export function calculateChemicalAdjustments(
   const priorityOrder = { high: 0, medium: 1, low: 2 }
   recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
-  // Determine retest time based on chemicals added
-  let timeToRetest = "4-6 hours"
-  if (recommendations.some((r) => r.chemical.includes("TA") || r.chemical.includes("Alkalinity"))) {
-    timeToRetest = "6-8 hours"
-  }
-  if (recommendations.some((r) => r.chemical.includes("Cyanuric") || r.chemical.includes("Conditioner"))) {
-    timeToRetest = "24-48 hours"
+  let timeToRetest = "For hot tubs retest in 30 mins, for swimming pools retest in 6-24 hours"
+  if (poolSpecs.type === "spa") {
+    timeToRetest = "For hot tubs retest in 30 mins"
+  } else {
+    timeToRetest = "For swimming pools retest in 6-24 hours"
   }
 
   return {
