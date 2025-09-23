@@ -1,21 +1,29 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AquaTest Pro - Pool Water Testing",
+  title: "Deep Blue Pro Strip Ease Pro - Pool Water Testing",
   description: "Analyze your pool water test strips instantly with AI-powered color detection",
-  
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-  themeColor: "#2563eb",
+  icons: {
+    icon: "/favicon.ico",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AquaTest Pro",
+    title: "Deep Blue Pro Strip Ease Pro",
   },
-  manifest: "/manifest.json",
+  manifest: "./manifest.json",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#2563eb",
 }
 
 export default function RootLayout({
@@ -26,13 +34,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <meta name="theme-color" content="#2563eb" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="AquaTest Pro" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-title" content="Deep Blue Pro Strip Ease Pro" />
+        <link rel="apple-touch-icon" href="./icon-192x192.png" />
+        <link rel="manifest" href="./manifest.json" />
+        <link rel="icon" href="/favicon.ico" />
+
         <style>{`
 html {
   font-family: ${GeistSans.style.fontFamily};
