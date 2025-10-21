@@ -1,11 +1,10 @@
-// Updated color references to better match real test strip colors
 export const COLOR_REFERENCES = {
   freeChlorine: [
     { range: [0, 0.5], color: { r: 255, g: 255, b: 240 }, status: "low" },
     { range: [0.5, 1.0], color: { r: 255, g: 220, b: 200 }, status: "low" },
     { range: [1.0, 3.0], color: { r: 255, g: 240, b: 150 }, status: "ok" },
-    { range: [3.0, 5.0], color: { r: 255, g: 220, b: 100 }, status: "high" },
-    { range: [5.0, 10.0], color: { r: 240, g: 180, b: 80 }, status: "high" },
+    { range: [3.0, 4.0], color: { r: 255, g: 200, b: 100 }, status: "high" }, // Added 3.0-4.0 as high
+    { range: [4.0, 10.0], color: { r: 240, g: 180, b: 80 }, status: "high" },
     { range: [10.0, Number.POSITIVE_INFINITY], color: { r: 200, g: 140, b: 60 }, status: "high" },
   ],
   ph: [
@@ -27,14 +26,14 @@ export const COLOR_REFERENCES = {
   totalChlorine: [
     { range: [0, 1.0], color: { r: 240, g: 200, b: 160 }, status: "low" },
     { range: [1.0, 3.0], color: { r: 255, g: 220, b: 200 }, status: "ok" },
-    { range: [3.0, 5.0], color: { r: 255, g: 180, b: 180 }, status: "high" },
+    { range: [3.0, 5.0], color: { r: 255, g: 180, b: 180 }, status: "high" }, // Updated to high for 3.0-5.0
     { range: [5.0, 10.0], color: { r: 255, g: 140, b: 160 }, status: "high" },
     { range: [10.0, Number.POSITIVE_INFINITY], color: { r: 220, g: 120, b: 150 }, status: "high" },
   ],
   totalHardness: [
-    { range: [0, 100], color: { r: 150, g: 200, b: 255 }, status: "low" },
-    { range: [100, 200], color: { r: 180, g: 180, b: 240 }, status: "low" },
-    { range: [200, 400], color: { r: 200, g: 160, b: 220 }, status: "ok" },
+    { range: [0, 150], color: { r: 150, g: 200, b: 255 }, status: "low" },
+    { range: [150, 200], color: { r: 180, g: 180, b: 240 }, status: "low" },
+    { range: [200, 400], color: { r: 200, g: 160, b: 220 }, status: "ok" }, // Updated range: 200-400
     { range: [400, 500], color: { r: 180, g: 140, b: 200 }, status: "high" },
     { range: [500, 1000], color: { r: 160, g: 120, b: 180 }, status: "high" },
   ],
@@ -42,12 +41,11 @@ export const COLOR_REFERENCES = {
     { range: [0, 20], color: { r: 255, g: 255, b: 150 }, status: "low" },
     { range: [20, 30], color: { r: 255, g: 240, b: 120 }, status: "low" },
     { range: [30, 50], color: { r: 255, g: 200, b: 140 }, status: "ok" },
-    { range: [50, 80], color: { r: 255, g: 160, b: 160 }, status: "ok" },
+    { range: [50, 80], color: { r: 255, g: 160, b: 160 }, status: "high" },
     { range: [80, 100], color: { r: 240, g: 140, b: 180 }, status: "high" },
     { range: [100, 240], color: { r: 220, g: 120, b: 160 }, status: "high" },
   ],
 }
-
 export interface RGB {
   r: number
   g: number
@@ -212,6 +210,7 @@ export function matchColorToValue(extractedColor: RGB, parameter: keyof typeof C
   // Double-check status based on final calculated value
   const finalStatus = determineStatusFromValue(value, parameter)
   if (finalStatus !== status) {
+    console.log(`[v0] Status correction for ${parameter}: ${status} -> ${finalStatus} (value: ${value})`)
     status = finalStatus
   }
 
@@ -257,15 +256,22 @@ export async function analyzeTestStrip(
   imageUrl: string,
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
+  console.log(`[v0] Starting analysis for ${stripType}`)
+
   try {
     // First try AI analysis via server-side API
+    console.log("[v0] Attempting AI analysis via server API")
     const aiResults = await analyzeWithHuggingFaceAPI(imageUrl, stripType)
     if (aiResults) {
+      console.log("[v0] AI analysis successful")
       return aiResults
     }
-  } catch (error) {}
+  } catch (error) {
+    console.log("[v0] AI analysis failed, falling back to enhanced color analysis:", error)
+  }
 
   // Fallback to enhanced color analysis
+  console.log(`[v0] Using enhanced color analysis for ${stripType}`)
   return analyzeTestStripEnhanced(imageUrl, stripType)
 }
 
@@ -274,6 +280,8 @@ async function analyzeWithHuggingFaceAPI(
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }> | null> {
   try {
+    console.log("[v0] Starting Hugging Face API analysis")
+
     // Convert image URL to blob for API
     const response = await fetch(imageUrl)
     if (!response.ok) {
@@ -281,6 +289,7 @@ async function analyzeWithHuggingFaceAPI(
     }
 
     const blob = await response.blob()
+    console.log("[v0] Image blob created, size:", blob.size)
 
     const formData = new FormData()
     formData.append("image", blob)
@@ -297,6 +306,7 @@ async function analyzeWithHuggingFaceAPI(
     }
 
     const result = await apiResponse.json()
+    console.log("[v0] Hugging Face API response:", result)
 
     if (result.error) {
       throw new Error(result.error)
@@ -305,6 +315,7 @@ async function analyzeWithHuggingFaceAPI(
     // Convert AI results to our format with better color generation
     return convertAIResultsToAnalysisResults(result, stripType)
   } catch (error) {
+    console.log("[v0] Hugging Face API analysis failed:", error)
     return null
   }
 }
@@ -428,10 +439,13 @@ export async function detectAndAnalyzeTestStrip(
   imageUrl: string,
   stripType: "3-in-1" | "6-in-1" = "6-in-1",
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
+  console.log(`[v0] Starting detectAndAnalyzeTestStrip for ${stripType}`)
+
   try {
     // Use the main analysis function which includes AI fallback
     return await analyzeTestStrip(imageUrl, stripType)
   } catch (error) {
+    console.log("[v0] detectAndAnalyzeTestStrip failed:", error)
     throw error
   }
 }
@@ -442,7 +456,8 @@ async function analyzeTestStripEnhanced(
 ): Promise<Record<string, AnalysisResult & { detectedColor?: RGB }>> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      reject(new Error("Analysis timeout - please try with a smaller or clearer image"))
+      console.log("[v0] Enhanced analysis timed out")
+      reject(new Error("Low quality image detected. Please improve lighting and try again with a clearer image."))
     }, 3000)
 
     try {
@@ -450,6 +465,8 @@ async function analyzeTestStripEnhanced(
 
       img.onload = () => {
         try {
+          console.log("[v0] Image loaded, starting enhanced analysis")
+
           const canvas = document.createElement("canvas")
           const ctx = canvas.getContext("2d")
           if (!ctx) {
@@ -476,6 +493,14 @@ async function analyzeTestStripEnhanced(
 
           ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
           const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight)
+
+          // Check image quality
+          const qualityScore = assessImageQuality(imageData)
+          if (qualityScore < 0.3) {
+            clearTimeout(timeoutId)
+            reject(new Error("Low quality image detected. Please improve lighting and try again with a clearer image."))
+            return
+          }
 
           const results: Record<string, AnalysisResult & { detectedColor?: RGB }> = {}
 
@@ -510,9 +535,11 @@ async function analyzeTestStripEnhanced(
             }
           })
 
+          console.log("[v0] Enhanced analysis complete")
           clearTimeout(timeoutId)
           resolve(results)
         } catch (error) {
+          console.log("[v0] Error in enhanced analysis:", error)
           clearTimeout(timeoutId)
           reject(error)
         }
@@ -529,4 +556,50 @@ async function analyzeTestStripEnhanced(
       reject(error)
     }
   })
+}
+
+// Add image quality assessment function
+function assessImageQuality(imageData: ImageData): number {
+  const data = imageData.data
+  let contrastScore = 0
+  let brightnessScore = 0
+  let saturationScore = 0
+  const sampleSize = 1000
+
+  for (let i = 0; i < sampleSize; i++) {
+    const index = Math.floor(Math.random() * (data.length / 4)) * 4
+    const r = data[index]
+    const g = data[index + 1]
+    const b = data[index + 2]
+
+    // Calculate brightness
+    const brightness = (r + g + b) / 3
+    brightnessScore += brightness
+
+    // Calculate saturation
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const saturation = max === 0 ? 0 : (max - min) / max
+    saturationScore += saturation
+
+    // Simple contrast estimation
+    if (i > 0) {
+      const prevIndex = Math.floor(Math.random() * (data.length / 4)) * 4
+      const prevR = data[prevIndex]
+      const prevG = data[prevIndex + 1]
+      const prevB = data[prevIndex + 2]
+      const colorDiff = Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB)
+      contrastScore += colorDiff
+    }
+  }
+
+  // Normalize scores
+  brightnessScore = brightnessScore / sampleSize / 255
+  saturationScore = saturationScore / sampleSize
+  contrastScore = contrastScore / sampleSize / (255 * 3)
+
+  // Combine scores (weights can be adjusted)
+  const overallScore = (brightnessScore * 0.3 + saturationScore * 0.3 + contrastScore * 0.4)
+
+  return Math.max(0, Math.min(1, overallScore))
 }
