@@ -9,6 +9,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 })
     }
 
+    // Check if Hugging Face API key is available
+    if (!process.env.HUGGINGFACE_API_KEY) {
+      console.warn("Hugging Face API key not configured")
+      return NextResponse.json({
+        stripDetected: false,
+        colorBands: [],
+        processingMethod: "fallback",
+      })
+    }
+
     const hfResponse = await fetch("https://api-inference.huggingface.co/models/facebook/detr-resnet-50", {
       headers: {
         Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
