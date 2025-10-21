@@ -16,18 +16,25 @@ import {
   Activity,
   Thermometer,
   Sun,
+  Download,
+  Share2,
+  Info,
 } from "lucide-react"
 import type { AnalysisResult } from "@/lib/color-analysis"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface ResultsDashboardProps {
   results: Record<string, AnalysisResult>
   onViewDetails: () => void
+  onViewResultsPage?: () => void
+  isShared?: boolean
 }
 
 const parameterConfig = {
   freeChlorine: {
     name: "Free Chlorine",
-    shortName: "Free Cl", // Add short names for mobile
+    shortName: "Free Cl",
     icon: Shield,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -67,7 +74,7 @@ const parameterConfig = {
     icon: Thermometer,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
-    idealRange: { min: 150, max: 300 },
+    idealRange: { min: 200, max: 400 }, // Updated range
     unit: "ppm",
   },
   cyanuricAcid: {
@@ -144,10 +151,180 @@ function getProgressColor(status: string): string {
   }
 }
 
-export function ResultsDashboard({ results, onViewDetails }: ResultsDashboardProps) {
+function ConfidenceTooltip({ confidence }: { confidence: number }) {
+  if (confidence >= 0.8) return null
+
+  return (
+    <div className="group relative inline-block">
+      <Info className="h-3 w-3 text-orange-500 ml-1 cursor-help" />
+      <div className="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap z-10 max-w-xs text-center">
+        To improve the confidence level please try another test strip or click the manual override button
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+      </div>
+    </div>
+  )
+}
+
+export function ResultsDashboard({ results, onViewDetails, onViewResultsPage, isShared = false }: ResultsDashboardProps) {
   const healthScore = calculateHealthScore(results)
   const issueCount = Object.values(results).filter((r) => r.status !== "ok").length
   const totalParams = Object.keys(results).length
+  const router = useRouter()
+
+  const handleSaveResults = async () => {
+    try {
+      const { jsPDF } = await import("jspdf")
+      const doc = new jsPDF()
+
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      let yPosition = 20
+
+      // Title
+      doc.setFontSize(20)
+      doc.setTextColor(31, 41, 55)
+      doc.text("Water Test Results", pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 10
+
+      // Date and time
+      doc.setFontSize(10)
+      doc.setTextColor(107, 114, 128)
+      const now = new Date()
+      doc.text(`${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`, pageWidth / 2, yPosition, {
+        align: "center",
+      })
+      yPosition += 15
+
+      // Health Score Section
+      doc.setFontSize(14)
+      doc.setTextColor(31, 41, 55)
+      doc.text("Pool Health Score", 20, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(28)
+      const scoreColor = healthScore >= 90 ? [22, 163, 74] : 
+                        healthScore >= 70 ? [234, 179, 8] : 
+                        healthScore >= 50 ? [234, 88, 12] : [220, 38, 38]
+      doc.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2])
+      doc.text(`${healthScore}`, pageWidth - 30, yPosition - 5, { align: "right" })
+
+      doc.setFontSize(10)
+      doc.setTextColor(107, 114, 128)
+      doc.text(
+        issueCount === 0 ? "All parameters balanced" : `${issueCount} of ${totalParams} need attention`,
+        20,
+        yPosition + 5,
+      )
+      yPosition += 20
+
+      // Test Parameters Table
+      doc.setFontSize(12)
+      doc.setTextColor(31, 41, 55)
+      doc.text("Test Parameters", 20, yPosition)
+      yPosition += 8
+
+      // Simple table implementation
+      let tableY = yPosition
+      Object.entries(results).forEach(([key, result]) => {
+        const config = parameterConfig[key as keyof typeof parameterConfig]
+        if (config && tableY < 250) {
+          const statusText = result.status === "ok" ? "BALANCED" : 
+                           result.status === "high" ? "HIGH" : "LOW"
+          
+          doc.setFontSize(10)
+          doc.setTextColor(31, 41, 55)
+          doc.text(config.name, 20, tableY)
+          doc.text(`${result.value} ${config.unit}`, 80, tableY)
+          doc.text(statusText, 120, tableY)
+          doc.text(`${Math.round(result.confidence * 100)}%`, 160, tableY)
+          
+          tableY += 8
+        }
+      })
+
+      yPosition = tableY + 15
+
+      // Action Required Section
+      if (issueCount > 0) {
+        doc.setFontSize(11)
+        doc.setTextColor(146, 64, 14)
+        doc.text("Action Required", 20, yPosition)
+        yPosition += 6
+
+        doc.setFontSize(9)
+        doc.setTextColor(120, 53, 15)
+        const actionText = `${issueCount} parameter${issueCount > 1 ? "s" : ""} ${issueCount > 1 ? "are" : "is"} outside the ideal range. Please review the recommendations for specific actions.`
+        const wrappedText = doc.splitTextToSize(actionText, pageWidth - 40)
+        doc.text(wrappedText, 20, yPosition)
+        yPosition += wrappedText.length * 5 + 10
+      }
+
+      // Footer
+      doc.setFontSize(8)
+      doc.setTextColor(156, 163, 175)
+      doc.text("Generated by Deep Blue Pool Supplies Water Testing App", pageWidth / 2, pageHeight - 10, {
+        align: "center",
+      })
+
+      doc.save(`water-test-results-${now.toISOString().split("T")[0]}.pdf`)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      alert("Failed to generate PDF. Please try again.")
+    }
+  }
+
+  const handleShareResults = () => {
+    try {
+      const shareId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      // Store the current results data
+      const resultsData = {
+        timestamp: new Date().toISOString(),
+        healthScore,
+        results: { ...results },
+        issueCount,
+        totalParams
+      }
+
+      localStorage.setItem(`results_${shareId}`, JSON.stringify(resultsData))
+
+      // Create shareable URL
+      const shareLink = `${window.location.origin}/results?share=${shareId}`
+      
+      // Use Web Share API if available, otherwise fallback to clipboard
+      if (navigator.share) {
+        navigator.share({
+          title: 'Pool Water Test Results',
+          text: `Check out my pool water test results! Health score: ${healthScore}/100`,
+          url: shareLink,
+        }).catch(() => {
+          // Fallback if Web Share fails
+          navigator.clipboard.writeText(shareLink)
+          alert("Shareable link copied to clipboard!")
+        })
+      } else {
+        navigator.clipboard.writeText(shareLink).then(() => {
+          alert("Shareable link copied to clipboard!")
+        }).catch(() => {
+          // Final fallback for older browsers
+          const textArea = document.createElement('textarea')
+          textArea.value = shareLink
+          document.body.appendChild(textArea)
+          textArea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textArea)
+          alert("Shareable link copied to clipboard!")
+        })
+      }
+    } catch (error) {
+      console.error("Error creating share link:", error)
+      alert("Failed to create share link. Please try again.")
+    }
+  }
+
+  const handleNewAnalysis = () => {
+    router.push("/")
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -228,7 +405,12 @@ export function ResultsDashboard({ results, onViewDetails }: ResultsDashboardPro
                     <Badge variant={result.status === "ok" ? "default" : "secondary"} className="text-xs px-1.5 py-0.5">
                       {result.status.toUpperCase()}
                     </Badge>
-                    <span className="text-gray-500">{Math.round(result.confidence * 100)}%</span>
+                    <div className="flex items-center">
+                      <span className={`text-gray-500 ${result.confidence < 0.8 ? 'text-orange-500 font-medium' : ''}`}>
+                        {Math.round(result.confidence * 100)}%
+                      </span>
+                      <ConfidenceTooltip confidence={result.confidence} />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -246,21 +428,64 @@ export function ResultsDashboard({ results, onViewDetails }: ResultsDashboardPro
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Button onClick={onViewDetails} className="w-full sm:w-auto" size="sm">
-              View Detailed Results
-            </Button>
-            {issueCount > 0 && (
-              <Button onClick={onViewDetails} variant="outline" className="w-full sm:w-auto bg-transparent" size="sm">
-                Get Chemical Recommendations
-              </Button>
+            {!isShared && (
+              <>
+                <Button onClick={onViewDetails} className="w-full sm:w-auto" size="sm">
+                  View Detailed Results
+                </Button>
+                {onViewResultsPage && (
+                  <Button 
+                    onClick={onViewResultsPage} 
+                    variant="outline" 
+                    className="w-full sm:w-auto bg-transparent" 
+                    size="sm"
+                  >
+                    View Results Page
+                  </Button>
+                )}
+                {issueCount > 0 && (
+                  <Button onClick={onViewDetails} variant="outline" className="w-full sm:w-auto bg-transparent" size="sm">
+                    Get Chemical Recommendations
+                  </Button>
+                )}
+              </>
             )}
-            <div className="flex gap-2 sm:gap-3">
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none bg-transparent">
-                Save
+            
+            <div className="flex gap-2 sm:gap-3 ml-auto">
+              {!isShared && (
+                <Button
+                  onClick={handleNewAnalysis}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none bg-transparent hover:bg-gray-50"
+                >
+                  New Analysis
+                </Button>
+              )}
+              <Button
+                onClick={handleSaveResults}
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none bg-transparent hover:bg-gray-50"
+                title="Download results as PDF"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Save</span>
+                <span className="sm:hidden">Save</span>
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none bg-transparent">
-                Share
-              </Button>
+              {!isShared && (
+                <Button
+                  onClick={handleShareResults}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none bg-transparent hover:bg-gray-50"
+                  title="Create shareable link"
+                >
+                  <Share2 className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Share</span>
+                  <span className="sm:hidden">Share</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -275,7 +500,7 @@ export function ResultsDashboard({ results, onViewDetails }: ResultsDashboardPro
                 <h4 className="font-semibold text-orange-800 mb-1 text-sm sm:text-base">Action Required</h4>
                 <p className="text-xs sm:text-sm text-orange-700 mb-2 sm:mb-3">
                   {issueCount} parameter{issueCount > 1 ? "s" : ""} {issueCount > 1 ? "are" : "is"} outside the ideal
-                  range. View detailed results for specific recommendations.
+                  range. {!isShared && "View detailed results for specific recommendations."}
                 </p>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
                   {Object.entries(results)
