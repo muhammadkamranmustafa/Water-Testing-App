@@ -34,7 +34,7 @@ const parameterInfo = {
   totalHardness: {
     name: "Total Hardness",
     description: "Calcium and magnesium content",
-    ideal: "200 - 400 ppm",
+    ideal: "150 - 300 ppm",
   },
   cyanuricAcid: {
     name: "Cyanuric Acid",
@@ -72,12 +72,9 @@ function getStatusColor(status: string) {
 function ConfidenceIndicator({ confidence }: { confidence: number }) {
   const percentage = Math.round(confidence * 100)
   const color = confidence > 0.8 ? "text-green-600" : confidence > 0.6 ? "text-yellow-600" : "text-red-600"
-  const showTooltip = confidence <= 0.6
-  const tooltipText =
-    "To improve the confidence level please try another test strip or click the manual override button"
 
   return (
-    <div className={`flex items-center gap-1 text-xs ${color}`} title={showTooltip ? tooltipText : undefined}>
+    <div className={`flex items-center gap-1 text-xs ${color}`}>
       <TrendingUp className="h-3 w-3" />
       {percentage}% confidence
     </div>
@@ -116,7 +113,7 @@ export function TestResults({ results }: TestResultsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-6 w-6" />
-            Water Test Results
+            Detailed Water Test Results
           </CardTitle>
           <CardDescription>
             {hasIssues
@@ -135,27 +132,28 @@ export function TestResults({ results }: TestResultsProps) {
               }
 
               return (
-                <div key={key} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={key} className="flex items-center justify-between p-4 border rounded-lg bg-white/50">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
+                    <div className="flex items-center gap-3 mb-2">
                       {getStatusIcon(result.status)}
-                      <h3 className="font-semibold">{info.name}</h3>
+                      <h3 className="font-semibold text-lg">{info.name}</h3>
                       <Badge className={getStatusColor(result.status)}>{result.status.toUpperCase()}</Badge>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">{info.description}</p>
-                    <p className="text-xs text-gray-500 mb-1">Ideal range: {info.ideal}</p>
+                    <p className="text-sm text-gray-600 mb-2">{info.description}</p>
+                    <p className="text-xs text-gray-500 mb-2">Ideal range: {info.ideal}</p>
                     <ConfidenceIndicator confidence={result.confidence} />
                     {result.detectedColor && (
-                      <div className="mt-2">
+                      <div className="mt-3">
                         <ColorIndicator detectedColor={result.detectedColor} />
                       </div>
                     )}
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold">
+                    <div className="text-3xl font-bold text-gray-900 mb-1">
                       {result.value}
-                      {result.unit}
+                      <span className="text-lg text-gray-600 ml-1">{result.unit}</span>
                     </div>
+                    <div className="text-sm text-gray-500">Current Value</div>
                   </div>
                 </div>
               )
@@ -164,7 +162,6 @@ export function TestResults({ results }: TestResultsProps) {
         </CardContent>
       </Card>
 
-      {/* Replace hardcoded recommendations with chemical calculator */}
       <ChemicalRecommendations results={results} />
     </div>
   )
