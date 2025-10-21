@@ -113,7 +113,7 @@ const TARGET_RANGES = {
   ph: { min: 7.2, max: 7.6, ideal: 7.4 },
   totalAlkalinity: { min: 80, max: 120, ideal: 100 },
   totalChlorine: { min: 1.0, max: 3.0, ideal: 2.0 },
-  totalHardness: { min: 200, max: 400, ideal: 300 },
+  totalHardness: { min: 200, max: 400, ideal: 300 }, // Updated range: 200-400 ppm
   cyanuricAcid: { min: 30, max: 50, ideal: 40 },
 }
 
@@ -153,7 +153,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "pH Plus",
+      chemical: "pH Plus (Sodium Carbonate)",
       amount,
       unit,
       reason: `Raise pH from ${ph.toFixed(1)} to ${phTarget.ideal}`,
@@ -165,7 +165,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "pH Minus",
+      chemical: "pH Minus (Sodium Bisulfate)",
       amount,
       unit,
       reason: `Lower pH from ${ph.toFixed(1)} to ${phTarget.ideal}`,
@@ -187,7 +187,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Granules",
+      chemical: "Chlorine Granules (Calcium Hypochlorite)",
       amount,
       unit,
       reason: `Raise free chlorine from ${freeChlorine.toFixed(1)} to ${chlorineTarget.ideal} ppm`,
@@ -203,7 +203,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Reducer",
+      chemical: "Chlorine Reducer (Sodium Thiosulfate)",
       amount,
       unit,
       reason: `Lower free chlorine from ${freeChlorine.toFixed(1)} to ${chlorineTarget.ideal} ppm`,
@@ -225,7 +225,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "TA Increaser",
+      chemical: "TA Increaser (Sodium Bicarbonate)",
       amount,
       unit,
       reason: `Raise total alkalinity from ${totalAlkalinity.toFixed(0)} to ${alkalinityTarget.ideal} ppm`,
@@ -241,7 +241,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "TA Reducer",
+      chemical: "TA Reducer (Sodium Bisulfate)",
       amount,
       unit,
       reason: `Lower total alkalinity from ${totalAlkalinity.toFixed(0)} to ${alkalinityTarget.ideal} ppm`,
@@ -251,7 +251,7 @@ export function calculateChemicalAdjustments(
   }
 
   // Calcium Hardness Adjustment
-  const totalHardness = testResults.totalHardness?.value || 300
+  const totalHardness = testResults.totalHardness?.value || 200
   const hardnessTarget = TARGET_RANGES.totalHardness
 
   if (totalHardness < hardnessTarget.min) {
@@ -263,7 +263,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Calcium Hardness Increaser",
+      chemical: "Calcium Hardness Increaser (Calcium Chloride)",
       amount,
       unit,
       reason: `Raise calcium hardness from ${totalHardness.toFixed(0)} to ${hardnessTarget.ideal} ppm`,
@@ -278,10 +278,10 @@ export function calculateChemicalAdjustments(
     recommendations.push({
       chemical: "Fresh Water Dilution",
       amount: Math.round(dilutionPercentage),
-      unit: "% of water volume",
+      unit: "% of pool volume",
       reason: `Lower calcium hardness from ${totalHardness.toFixed(0)} to ${hardnessTarget.ideal} ppm`,
       priority: "low",
-      instructions: `Drain ${Math.round(dilutionPercentage)}% of water and refill with fresh water to reduce calcium hardness levels.`,
+      instructions: `Drain ${Math.round(dilutionPercentage)}% of pool water and refill with fresh water to reduce calcium hardness.`,
     })
   }
 
@@ -298,7 +298,7 @@ export function calculateChemicalAdjustments(
     const { amount, unit } = getAppropriateUnit(amountGrams)
 
     recommendations.push({
-      chemical: "Chlorine Conditioner",
+      chemical: "Chlorine Conditioner (Cyanuric Acid)",
       amount,
       unit,
       reason: `Raise cyanuric acid from ${cyanuricAcid.toFixed(0)} to ${cyaTarget.ideal} ppm`,
@@ -312,15 +312,18 @@ export function calculateChemicalAdjustments(
     recommendations.push({
       chemical: "Fresh Water Dilution",
       amount: Math.round(dilutionPercentage),
-      unit: "% of water volume",
+      unit: "% of pool volume",
       reason: `Lower cyanuric acid from ${cyanuricAcid.toFixed(0)} to ${cyaTarget.ideal} ppm`,
       priority: "low",
-      instructions: `Drain ${Math.round(dilutionPercentage)}% of water and refill with fresh water to reduce cyanuric acid levels.`,
+      instructions: `Drain ${Math.round(dilutionPercentage)}% of pool water and refill with fresh water to reduce cyanuric acid levels.`,
     })
   }
 
-  if (freeChlorine > 5.0) {
-    warnings.push("High chlorine levels may interfere with other test readings. Consider reducing chlorine first.")
+  // Updated chlorine status check - if chlorine is 4 or higher, it should be "high"
+  if (freeChlorine >= 4.0) {
+    warnings.push("High chlorine levels detected. Free chlorine above 4.0 ppm is considered high and may cause skin/eye irritation.")
+  } else if (freeChlorine > 5.0) {
+    warnings.push("Very high chlorine levels may interfere with other test readings. Consider reducing chlorine first.")
   }
 
   if (ph < 6.8 || ph > 8.2) {
@@ -331,12 +334,8 @@ export function calculateChemicalAdjustments(
   const priorityOrder = { high: 0, medium: 1, low: 2 }
   recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
-  let timeToRetest = "For hot tubs retest in 30 mins, for swimming pools retest in 6-24 hours"
-  if (poolSpecs.type === "spa") {
-    timeToRetest = "For hot tubs retest in 30 mins"
-  } else {
-    timeToRetest = "For swimming pools retest in 6-24 hours"
-  }
+  // Determine retest time based on pool type
+  let timeToRetest = poolSpecs.type === "spa" ? "30 minutes" : "6-24 hours"
 
   return {
     recommendations,
@@ -345,7 +344,7 @@ export function calculateChemicalAdjustments(
   }
 }
 
-// Pool volume calculator
+// Pool volume calculator with multiple units
 export function calculatePoolVolume(
   shape: "rectangular" | "circular" | "oval" | "kidney",
   dimensions: {
@@ -355,29 +354,79 @@ export function calculatePoolVolume(
     shallowDepth: number
     deepDepth: number
   },
+  unit: "gallons" | "litres" | "cubic-meters" = "gallons",
 ): number {
   const avgDepth = (dimensions.shallowDepth + dimensions.deepDepth) / 2
+
+  let volumeCubicMeters = 0
 
   switch (shape) {
     case "rectangular":
       if (!dimensions.length || !dimensions.width) return 0
-      return dimensions.length * dimensions.width * avgDepth * 7.48 // 7.48 gallons per cubic foot
+      volumeCubicMeters = (dimensions.length * dimensions.width * avgDepth) / 35.315 // Convert cubic feet to cubic meters
+      break
 
     case "circular":
       if (!dimensions.diameter) return 0
       const radius = dimensions.diameter / 2
-      return Math.PI * radius * radius * avgDepth * 7.48
+      volumeCubicMeters = (Math.PI * radius * radius * avgDepth) / 35.315
+      break
 
     case "oval":
       if (!dimensions.length || !dimensions.width) return 0
-      return Math.PI * (dimensions.length / 2) * (dimensions.width / 2) * avgDepth * 7.48
+      volumeCubicMeters = (Math.PI * (dimensions.length / 2) * (dimensions.width / 2) * avgDepth) / 35.315
+      break
 
     case "kidney":
       if (!dimensions.length || !dimensions.width) return 0
       // Approximate kidney shape as 0.85 of an oval
-      return Math.PI * (dimensions.length / 2) * (dimensions.width / 2) * avgDepth * 7.48 * 0.85
+      volumeCubicMeters = (Math.PI * (dimensions.length / 2) * (dimensions.width / 2) * avgDepth * 0.85) / 35.315
+      break
 
     default:
       return 0
+  }
+
+  // Convert to desired unit
+  switch (unit) {
+    case "gallons":
+      return volumeCubicMeters * 222 // 1 cubic meter = 222 imperial gallons
+    case "litres":
+      return volumeCubicMeters * 1000 // 1 cubic meter = 1000 litres
+    case "cubic-meters":
+      return volumeCubicMeters
+    default:
+      return volumeCubicMeters * 222 // Default to gallons
+  }
+}
+
+// Convert between volume units
+export function convertVolume(volume: number, fromUnit: string, toUnit: string): number {
+  // First convert to cubic meters
+  let cubicMeters = 0
+  switch (fromUnit) {
+    case "gallons":
+      cubicMeters = volume / 222
+      break
+    case "litres":
+      cubicMeters = volume / 1000
+      break
+    case "cubic-meters":
+      cubicMeters = volume
+      break
+    default:
+      cubicMeters = volume / 222
+  }
+
+  // Then convert to target unit
+  switch (toUnit) {
+    case "gallons":
+      return cubicMeters * 222
+    case "litres":
+      return cubicMeters * 1000
+    case "cubic-meters":
+      return cubicMeters
+    default:
+      return cubicMeters * 222
   }
 }
