@@ -6,17 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, Waves } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Calculator, Ruler, Droplets } from "lucide-react"
+import { calculatePoolVolume, convertVolume } from "@/lib/chemical-calculator"
 
 interface PoolVolumeCalculatorProps {
   onVolumeCalculated: (volume: number) => void
   initialVolume?: number
 }
 
-type LengthUnit = "ft" | "inches" | "cm" | "metre"
+type PoolShape = "rectangular" | "circular" | "oval" | "kidney"
+type VolumeUnit = "gallons" | "litres" | "cubic-meters"
 
 export function PoolVolumeCalculator({ onVolumeCalculated, initialVolume }: PoolVolumeCalculatorProps) {
-  const [shape, setShape] = useState<"rectangular" | "circular" | "oval" | "kidney">("rectangular")
+  const [shape, setShape] = useState<PoolShape>("rectangular")
+  const [unit, setUnit] = useState<VolumeUnit>("gallons")
   const [dimensions, setDimensions] = useState({
     length: "",
     width: "",
@@ -24,285 +28,217 @@ export function PoolVolumeCalculator({ onVolumeCalculated, initialVolume }: Pool
     shallowDepth: "",
     deepDepth: "",
   })
-  const [lengthUnit, setLengthUnit] = useState<LengthUnit>("ft")
-  const [calculatedVolume, setCalculatedVolume] = useState(initialVolume || 0)
-  const [volumeResults, setVolumeResults] = useState<{ cubicMetres: number; litres: number; gallons: number } | null>(
-    null,
-  )
-  const [manualVolume, setManualVolume] = useState(initialVolume?.toString() || "")
-  const [useManual, setUseManual] = useState(!!initialVolume)
-
-  const convertToMetres = (value: number, unit: LengthUnit): number => {
-    switch (unit) {
-      case "ft":
-        return value / 3.2808
-      case "inches":
-        return value / 39.37
-      case "cm":
-        return value / 100
-      case "metre":
-        return value
-      default:
-        return value
-    }
-  }
+  const [calculatedVolume, setCalculatedVolume] = useState<number | null>(initialVolume || null)
 
   const handleCalculate = () => {
-    const lengthM = convertToMetres(Number.parseFloat(dimensions.length) || 0, lengthUnit)
-    const widthM = convertToMetres(Number.parseFloat(dimensions.width) || 0, lengthUnit)
-    const diameterM = convertToMetres(Number.parseFloat(dimensions.diameter) || 0, lengthUnit)
-    const shallowDepthM = convertToMetres(Number.parseFloat(dimensions.shallowDepth) || 0, lengthUnit)
-    const deepDepthM = convertToMetres(Number.parseFloat(dimensions.deepDepth) || 0, lengthUnit)
+    const shallowDepth = parseFloat(dimensions.shallowDepth)
+    const deepDepth = parseFloat(dimensions.deepDepth)
 
-    const dimsInMetres = {
-      length: lengthM,
-      width: widthM,
-      diameter: diameterM,
-      shallowDepth: shallowDepthM,
-      deepDepth: deepDepthM,
+    if (isNaN(shallowDepth) || isNaN(deepDepth)) {
+      alert("Please enter both depth values")
+      return
     }
 
-    // Calculate volume in cubic metres
-    let volumeCubicMetres: number
-    const avgDepth = (shallowDepthM + deepDepthM) / 2
+    let volume = 0
 
     switch (shape) {
       case "rectangular":
-        volumeCubicMetres = lengthM * widthM * avgDepth
+        const length = parseFloat(dimensions.length)
+        const width = parseFloat(dimensions.width)
+        if (isNaN(length) || isNaN(width)) {
+          alert("Please enter length and width for rectangular pool")
+          return
+        }
+        volume = calculatePoolVolume(shape, { length, width, shallowDepth, deepDepth }, unit)
         break
+
       case "circular":
-        const radius = diameterM / 2
-        volumeCubicMetres = Math.PI * radius * radius * avgDepth
+        const diameter = parseFloat(dimensions.diameter)
+        if (isNaN(diameter)) {
+          alert("Please enter diameter for circular pool")
+          return
+        }
+        volume = calculatePoolVolume(shape, { diameter, shallowDepth, deepDepth }, unit)
         break
+
       case "oval":
-        volumeCubicMetres = Math.PI * (lengthM / 2) * (widthM / 2) * avgDepth
+        const ovalLength = parseFloat(dimensions.length)
+        const ovalWidth = parseFloat(dimensions.width)
+        if (isNaN(ovalLength) || isNaN(ovalWidth)) {
+          alert("Please enter length and width for oval pool")
+          return
+        }
+        volume = calculatePoolVolume(shape, { length: ovalLength, width: ovalWidth, shallowDepth, deepDepth }, unit)
         break
+
       case "kidney":
-        // Approximate kidney shape as 0.85 of rectangular
-        volumeCubicMetres = lengthM * widthM * avgDepth * 0.85
+        const kidneyLength = parseFloat(dimensions.length)
+        const kidneyWidth = parseFloat(dimensions.width)
+        if (isNaN(kidneyLength) || isNaN(kidneyWidth)) {
+          alert("Please enter length and width for kidney-shaped pool")
+          return
+        }
+        volume = calculatePoolVolume(shape, { length: kidneyLength, width: kidneyWidth, shallowDepth, deepDepth }, unit)
         break
-      default:
-        volumeCubicMetres = 0
     }
 
-    const volumeLitres = volumeCubicMetres * 1000
-    const volumeGallons = volumeCubicMetres * 222 // Imperial gallons
-
-    const results = {
-      cubicMetres: volumeCubicMetres,
-      litres: volumeLitres,
-      gallons: volumeGallons,
+    if (volume > 0) {
+      setCalculatedVolume(volume)
+      onVolumeCalculated(convertVolume(volume, unit, "gallons")) // Always store in gallons internally
     }
-
-    setVolumeResults(results)
-    setCalculatedVolume(volumeGallons) // Keep gallons for backward compatibility
-    onVolumeCalculated(volumeGallons)
   }
 
-  const handleManualVolume = () => {
-    const volume = Number.parseFloat(manualVolume) || 0
-    setCalculatedVolume(volume)
-    onVolumeCalculated(volume)
-    const cubicMetres = volume / 222
-    const litres = cubicMetres * 1000
-    setVolumeResults({
-      cubicMetres,
-      litres,
-      gallons: volume,
-    })
+  const getVolumeInAllUnits = () => {
+    if (!calculatedVolume) return null
+
+    const gallons = convertVolume(calculatedVolume, unit, "gallons")
+    const litres = convertVolume(calculatedVolume, unit, "litres")
+    const cubicMeters = convertVolume(calculatedVolume, unit, "cubic-meters")
+
+    return { gallons, litres, cubicMeters }
   }
+
+  const allVolumes = getVolumeInAllUnits()
 
   return (
     <Card>
-      <CardHeader className="pb-3 sm:pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-          <Waves className="h-4 w-4 sm:h-5 sm:w-5" />
-          Calculate hot tub or swimming pool volume
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calculator className="h-6 w-6" />
+          Calculate Hot Tub or Swimming Pool Volume
         </CardTitle>
-        <CardDescription className="text-sm">Calculate your pool volume for accurate chemical dosing</CardDescription>
+        <CardDescription>
+          Enter your pool dimensions to calculate volume for accurate chemical dosing
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-        <div className="flex gap-1 sm:gap-2">
-          <Button
-            variant={!useManual ? "default" : "outline"}
-            onClick={() => setUseManual(false)}
-            size="sm"
-            className="flex-1 text-xs sm:text-sm"
-          >
-            Calculate Volume
-          </Button>
-          <Button
-            variant={useManual ? "default" : "outline"}
-            onClick={() => setUseManual(true)}
-            size="sm"
-            className="flex-1 text-xs sm:text-sm"
-          >
-            Enter Known Volume
-          </Button>
+      <CardContent className="space-y-6">
+        {/* Shape Selection */}
+        <div className="space-y-3">
+          <Label>Pool Shape</Label>
+          <Select value={shape} onValueChange={(value: PoolShape) => setShape(value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rectangular">Rectangular</SelectItem>
+              <SelectItem value="circular">Circular</SelectItem>
+              <SelectItem value="oval">Oval</SelectItem>
+              <SelectItem value="kidney">Kidney-shaped</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {useManual ? (
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <Label htmlFor="manual-volume" className="text-sm">
-                Pool Volume (gallons)
-              </Label>
+        {/* Unit Selection */}
+        <div className="space-y-3">
+          <Label>Measurement Units</Label>
+          <Select value={unit} onValueChange={(value: VolumeUnit) => setUnit(value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gallons">Imperial Gallons</SelectItem>
+              <SelectItem value="litres">Litres</SelectItem>
+              <SelectItem value="cubic-meters">Cubic Meters</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Dimensions Input */}
+        <div className="space-y-4">
+          <Label>Pool Dimensions</Label>
+          
+          {(shape === "rectangular" || shape === "oval" || shape === "kidney") && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="length">Length</Label>
+                <Input
+                  id="length"
+                  type="number"
+                  placeholder="0"
+                  value={dimensions.length}
+                  onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="width">Width</Label>
+                <Input
+                  id="width"
+                  type="number"
+                  placeholder="0"
+                  value={dimensions.width}
+                  onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          {shape === "circular" && (
+            <div className="space-y-2">
+              <Label htmlFor="diameter">Diameter</Label>
               <Input
-                id="manual-volume"
+                id="diameter"
                 type="number"
-                placeholder="Enter pool volume in gallons"
-                value={manualVolume}
-                onChange={(e) => setManualVolume(e.target.value)}
-                className="mt-1"
+                placeholder="0"
+                value={dimensions.diameter}
+                onChange={(e) => setDimensions({ ...dimensions, diameter: e.target.value })}
               />
             </div>
-            <Button onClick={handleManualVolume} className="w-full" size="sm">
-              Use This Volume
-            </Button>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="shallowDepth">Shallow End Depth</Label>
+              <Input
+                id="shallowDepth"
+                type="number"
+                placeholder="0"
+                value={dimensions.shallowDepth}
+                onChange={(e) => setDimensions({ ...dimensions, shallowDepth: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deepDepth">Deep End Depth</Label>
+              <Input
+                id="deepDepth"
+                type="number"
+                placeholder="0"
+                value={dimensions.deepDepth}
+                onChange={(e) => setDimensions({ ...dimensions, deepDepth: e.target.value })}
+              />
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <Label htmlFor="pool-shape" className="text-sm">
-                Pool Shape
-              </Label>
-              <Select value={shape} onValueChange={(value: any) => setShape(value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select pool shape" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rectangular">Rectangular</SelectItem>
-                  <SelectItem value="circular">Circular</SelectItem>
-                  <SelectItem value="oval">Oval</SelectItem>
-                  <SelectItem value="kidney">Kidney</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        </div>
 
-            <div>
-              <Label className="text-sm font-medium">Measurement Unit</Label>
-              <Select value={lengthUnit} onValueChange={(value: LengthUnit) => setLengthUnit(value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ft">Feet (ft)</SelectItem>
-                  <SelectItem value="inches">Inches (in)</SelectItem>
-                  <SelectItem value="cm">Centimetres (cm)</SelectItem>
-                  <SelectItem value="metre">Metres (m)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Button onClick={handleCalculate} className="w-full">
+          <Calculator className="h-4 w-4 mr-2" />
+          Calculate Volume
+        </Button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {shape !== "circular" && (
-                <>
-                  <div>
-                    <Label htmlFor="length" className="text-sm">
-                      Length ({lengthUnit})
-                    </Label>
-                    <Input
-                      id="length"
-                      type="number"
-                      placeholder="Length"
-                      value={dimensions.length}
-                      onChange={(e) => setDimensions((prev) => ({ ...prev, length: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="width" className="text-sm">
-                      Width ({lengthUnit})
-                    </Label>
-                    <Input
-                      id="width"
-                      type="number"
-                      placeholder="Width"
-                      value={dimensions.width}
-                      onChange={(e) => setDimensions((prev) => ({ ...prev, width: e.target.value }))}
-                      className="mt-1"
-                    />
-                  </div>
-                </>
-              )}
-
-              {shape === "circular" && (
-                <div className="sm:col-span-2">
-                  <Label htmlFor="diameter" className="text-sm">
-                    Diameter ({lengthUnit})
-                  </Label>
-                  <Input
-                    id="diameter"
-                    type="number"
-                    placeholder="Diameter"
-                    value={dimensions.diameter}
-                    onChange={(e) => setDimensions((prev) => ({ ...prev, diameter: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="shallow-depth" className="text-sm">
-                  Shallow End Depth ({lengthUnit})
-                </Label>
-                <Input
-                  id="shallow-depth"
-                  type="number"
-                  step="0.5"
-                  placeholder="3.0"
-                  value={dimensions.shallowDepth}
-                  onChange={(e) => setDimensions((prev) => ({ ...prev, shallowDepth: e.target.value }))}
-                  className="mt-1"
-                />
+        {/* Results */}
+        {allVolumes && (
+          <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Droplets className="h-4 w-4" />
+              Calculated Volume
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-2xl font-bold text-blue-600">{Math.round(allVolumes.cubicMeters * 100) / 100}</div>
+                <div className="text-sm text-gray-600">Cubic Meters</div>
               </div>
-              <div>
-                <Label htmlFor="deep-depth" className="text-sm">
-                  Deep End Depth ({lengthUnit})
-                </Label>
-                <Input
-                  id="deep-depth"
-                  type="number"
-                  step="0.5"
-                  placeholder="8.0"
-                  value={dimensions.deepDepth}
-                  onChange={(e) => setDimensions((prev) => ({ ...prev, deepDepth: e.target.value }))}
-                  className="mt-1"
-                />
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-2xl font-bold text-blue-600">{Math.round(allVolumes.litres)}</div>
+                <div className="text-sm text-gray-600">Litres</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-2xl font-bold text-blue-600">{Math.round(allVolumes.gallons)}</div>
+                <div className="text-sm text-gray-600">Imperial Gallons</div>
               </div>
             </div>
-
-            <Button onClick={handleCalculate} className="w-full" size="sm">
-              <Calculator className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              Calculate hot tub or swimming pool volume
-            </Button>
+            <div className="text-xs text-gray-500 text-center">
+              Conversion: 1 cubic meter = 1000 litres = 222 imperial gallons
+            </div>
           </div>
-        )}
-
-        {volumeResults && (
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base sm:text-lg">Volume Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-white rounded-lg">
-                  <div className="text-lg sm:text-xl font-bold text-blue-600">
-                    {volumeResults.cubicMetres.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-gray-600">Cubic Metres</div>
-                </div>
-                <div className="p-3 bg-white rounded-lg">
-                  <div className="text-lg sm:text-xl font-bold text-blue-600">{volumeResults.litres.toFixed(0)}</div>
-                  <div className="text-xs text-gray-600">Litres</div>
-                </div>
-                <div className="p-3 bg-white rounded-lg">
-                  <div className="text-lg sm:text-xl font-bold text-blue-600">{volumeResults.gallons.toFixed(0)}</div>
-                  <div className="text-xs text-gray-600">Imperial Gallons</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         )}
       </CardContent>
     </Card>
