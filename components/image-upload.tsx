@@ -110,8 +110,8 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
                 <span className="hidden sm:inline">Drag and drop your test strip image here</span>
                 <span className="sm:hidden">Upload your test strip image</span>
               </p>
-              <p className="text-sm sm:text-base text-gray-600 mt-2">
-                For best results, ensure the test strip is clearly visible and well-lit
+              <p className="text-sm text-gray-600 mb-4">
+                For best results, ensure the test strip is well lit and clearly visible, on a white background and without shadows
               </p>
             </div>
           </div>
